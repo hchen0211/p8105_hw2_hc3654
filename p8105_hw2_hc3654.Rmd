@@ -66,6 +66,43 @@ pols_snp_unemp <-
 ```
 
 
+##Problem 2
+
+#Setting up datasets
+
+```{r}
+MrTrashWheel_df <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel" , na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  filter( dumpster != "na") |> 
+  select(-15,-16) |> 
+  mutate(sports_balls = as.integer(round(sports_balls))) |> 
+  mutate(track = "Mr.Trash Wheel") |> 
+  mutate(year = as.numeric(year))
+
+ProfTrashWheel_df <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  filter( dumpster != "na") |> 
+  mutate(track = "Professor Trash Wheel")
+
+
+GwynndaTrashWheel_df <- 
+  read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = "Gwynnda Trash Wheel", na = c("NA", ".", " ")) |> 
+janitor::clean_names()|> 
+  filter( dumpster != "na") |> 
+  mutate(track = "Gwynnda Trash Wheel")
+```
+
+
+# Combines datasets
+
+```{r}
+AllTrashWell_df <- 
+  bind_rows(MrTrashWheel_df,ProfTrashWheel_df,GwynndaTrashWheel_df)
+```
+
+
 
 
 

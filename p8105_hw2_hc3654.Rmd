@@ -3,3 +3,69 @@ title: "p8105_hw2_hc3654"
 output: github_document
 ---
 
+```{r}
+library(tidyverse)
+library(readxl)
+library(haven)
+```
+
+
+##Problem 1
+
+#pols-month dataset
+
+```{r}
+pols_month_df <- 
+  read_csv("fivethirtyeight_datasets/pols-month.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  separate(mon , into = c("year", "month", "day"), sep = "-"
+  ) |> 
+  mutate(month = month.name[as.numeric(month)]) |> 
+  mutate(president = case_when(
+    prez_dem == 1 ~ "dem",
+    prez_gop == 1 ~ "gop"
+  )) |> 
+  select(-prez_dem, -prez_gop, -day)
+  
+```
+
+#snp dataset
+
+```{r}
+snp_df <- 
+  read_csv("fivethirtyeight_datasets/cpi.csv") |> 
+  janitor::clean_names() |> 
+  separate(date, into = c("year", "month", "day"), sep = "-") |> 
+  mutate(month = month.name[as.numeric(month)]) |> 
+  rename(snp_value = value) |> 
+  arrange(year,month)
+```
+
+#unemployment dataset
+
+```{r}
+unemp_df <- 
+  read_csv("fivethirtyeight_datasets/unemployment.csv") |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = jan:dec,
+    names_to = "month",
+    values_to = "unemployment"
+  ) |> 
+  mutate(
+    month = month.name[match(tolower(month), tolower(month.abb))]) |> 
+  mutate(year = as.character(year))
+```
+#Merge
+
+```{r}
+pols_snp_unemp <- 
+  inner_join(pols_month_df,snp_df, by = c("year","month")) |> 
+  inner_join(unemp_df, by = c("year", "month"))
+
+```
+
+
+
+
+

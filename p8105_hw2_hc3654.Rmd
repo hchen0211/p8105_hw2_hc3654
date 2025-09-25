@@ -102,7 +102,37 @@ AllTrashWell_df <-
   bind_rows(MrTrashWheel_df,ProfTrashWheel_df,GwynndaTrashWheel_df)
 ```
 
+##Problem 3
 
+#Clean data
+
+```{r}
+Zip_Codes_df <- 
+  read_csv("zillow_data/Zip Codes.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  arrange(zip_code)
+
+Zillow_df <- 
+  read_csv("zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = x2015_01_31 : x2024_08_31,
+    names_to = "Date",
+    values_to = "rental_fee"
+  ) |> 
+  separate(Date, into = c("year", "month" , "day"), sep = "_") |> 
+  mutate(year = sub("x","",year)) |> 
+  filter(rental_fee != "na") |> 
+  arrange(desc(rental_fee)) |> 
+  rename( zip_code = region_name)
+```
+
+#Create single 
+
+```{r}
+Zillow_Zipcode_df <-  
+  full_join(Zillow_df, Zip_Codes_df, by = "zip_code")
+```
 
 
 

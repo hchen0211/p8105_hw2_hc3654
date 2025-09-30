@@ -31,6 +31,7 @@ pols_month_df <-
     prez_gop == 1 ~ "gop"
   )) |> 
   select(-prez_dem, -prez_gop, -day)
+
   
 ```
 
@@ -45,6 +46,7 @@ snp_df <-
   mutate(month = month.name[as.numeric(month)]) |> 
   rename(snp_value = value) |> 
   arrange(year,month)
+
 ```
 
 ## unemployment dataset
@@ -62,6 +64,7 @@ unemp_df <-
   mutate(
     month = month.name[match(tolower(month), tolower(month.abb))]) |> 
   mutate(year = as.character(year))
+
 ```
 ## Merge
 
@@ -70,6 +73,8 @@ unemp_df <-
 pols_snp_unemp <- 
   inner_join(pols_month_df,snp_df, by = c("year","month")) |> 
   inner_join(unemp_df, by = c("year", "month"))
+
+knitr::kable(head(pols_snp_unemp,10), caption  = "First 10 rows")
 
 ```
 
@@ -96,7 +101,7 @@ After merging the three datasets, we can easily track unemployment rates and eco
 
 ```{r}
 MrTrashWheel_df <- 
-  read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel" , na = c("NA", ".", " ")) |> 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel" , na = c("NA", ".", " ")) |> 
   janitor::clean_names() |> 
   filter( dumpster != "na") |> 
   select(-15,-16) |> 
@@ -123,8 +128,10 @@ janitor::clean_names()|>
 
 
 ```{r}
-AllTrashWell_df <- 
+AllTrashWheel_df <- 
   bind_rows(MrTrashWheel_df,ProfTrashWheel_df,GwynndaTrashWheel_df)
+
+knitr::kable(head(AllTrashWheel_df,10), caption = "First 10 rows")
 ```
 
 # Writing question for Problem 2:
@@ -168,8 +175,10 @@ Zillow_df <-
 
 ```{r}
 Zillow_Zipcode_df <-  
-  left_join(Zip_Codes_df, Zillow_df, by = "zip_code")
-  
+  left_join(Zip_Codes_df, Zillow_df, by = "zip_code",relationship = "many-to-many") |> 
+  select(-county_fips, -state_fips,-county_code,-file_date, -region_id, -size_rank, -region_type, -metro, -state_name)
+
+knitr::kable(head(Zillow_Zipcode_df,10), caption = "First 10 rows")
 ```
 
 ## Writing question for Problem 3: 
@@ -207,7 +216,6 @@ top10 <- price_diff |>
     rent_2021 = rental_2021,
     drop = diff
   )
-
 
 ```
 

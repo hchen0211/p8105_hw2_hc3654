@@ -1,5 +1,5 @@
 ---
-title: "p8105_hw2_hc3654"
+title: "p8105_hw1_hc3654"
 author: "Haohua Chen"
 date: "2025-09-25"
 output: github_document
@@ -136,7 +136,7 @@ knitr::kable(head(AllTrashWheel_df,10), caption = "First 10 rows")
 
 # Writing question for Problem 2:
 
-The total weight of the Professor Trash Wheel is `r sum(ProfTrashWheel_df$weight_tons, na.rm = TRUE)` during those days. And 
+The total weight of the Professor Trash Wheel is `r sum(ProfTrashWheel_df$weight_tons, na.rm = TRUE)` tons during those days. And 
 And the total number of cigarette butts collected by Gwynnda in June of 2022 is  `r GwynndaTrashWheel_df |> 
     dplyr::filter(year == 2022, month == "June") |> 
     dplyr::summarise(total = sum(cigarette_butts, na.rm = TRUE)) |> 
@@ -165,7 +165,8 @@ Zillow_df <-
   ) |> 
   separate(Date, into = c("year", "month" , "day"), sep = "_") |> 
   mutate(year = sub("x","",year)) |> 
-  mutate(county = str_replace(county_name, " County", "")) |> 
+  mutate(county = str_replace(county_name," County","")) |> 
+  select(-county_name) |> 
   arrange(desc(rental_fee)) |> 
   rename( zip_code = region_name) 
 ```
@@ -174,9 +175,13 @@ Zillow_df <-
 
 ```{r}
 Zillow_Zipcode_df <-  
-  left_join(Zip_Codes_df, Zillow_df, by = c("zip_code","county"),relationship = "many-to-many") |> 
+  left_join(Zip_Codes_df, Zillow_df, by = c("zip_code","county")) |> 
   select(-county_fips, -state_fips,-county_code,-file_date, -region_id, -size_rank, -region_type, -metro, -state_name)
 
+
+  
+  
+  
 knitr::kable(head(Zillow_Zipcode_df,10), caption = "First 10 rows")
 ```
 
@@ -191,11 +196,11 @@ Exclude_Zillow <- setdiff(Zip_Codes_df$zip_code, Zillow_df$zip_code)
 
 ```{r}
 price_diff <- Zillow_Zipcode_df |> 
-  select(year,month, zip_code, neighborhood, rental_fee, county_name) |> 
+  select(year,month, zip_code, neighborhood, rental_fee, county) |> 
   filter(year == '2020' & month == "01" | year == '2021' & month == "01") |> 
   mutate(rental_2020 = case_when(year == '2020' ~ rental_fee), rental_2021 = case_when(year == "2021" ~ rental_fee)) |> 
    pivot_wider(
-    id_cols   = c(zip_code, neighborhood, county_name),   
+    id_cols   = c(zip_code, neighborhood, county),   
     names_from  = year,                                  
     values_from = rental_fee,                           
     names_prefix = "rental_",                             
@@ -208,7 +213,7 @@ price_diff <- Zillow_Zipcode_df |>
 top10 <- price_diff |> 
   slice_max(order_by = diff, n = 10) |> 
   rename(
-    borough = county_name,
+    borough = county,
     zip = zip_code,
     neighborhood = neighborhood,
     rent_2020 = rental_2020,
@@ -221,7 +226,7 @@ top10 <- price_diff |>
 
 
 
-There are total **`r nrow(Zillow_Zipcode_df)` obs, `r dplyr::n_distinct(Zillow_Zipcode_df$zip_code)`** unique zip codes and **`r dplyr::n_distinct(Zillow_Zipcode_df$neighborhood)`** unique neighborhoods(with a "na"). 
+There are total **`r nrow(Zillow_Zipcode_df)` obs, `r dplyr::n_distinct(Zillow_Zipcode_df$zip_code)`** unique zip codes and **`r dplyr::n_distinct(Zillow_Zipcode_df$neighborhood)`** unique neighborhoods（include an "na").
 ZIP codes appear in the ZIP code dataset but not in the Zillow Rental Price dataset are: `r paste(Exclude_Zillow, collapse = " ")`.
 
 **Some Example should be consider to this results can be:**

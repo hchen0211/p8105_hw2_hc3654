@@ -1,0 +1,241 @@
+---
+title: "p8105_hw2_hc3654"
+author: "Haohua Chen"
+date: "2025-09-25"
+output: github_document
+  
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(haven)
+```
+
+
+# Problem 1
+
+
+## pols-month dataset
+
+
+```{r}
+pols_month_df <- 
+  read_csv("fivethirtyeight_datasets/pols-month.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  separate(mon , into = c("year", "month", "day"), sep = "-"
+  ) |> 
+  mutate(month = month.name[as.numeric(month)]) |> 
+  mutate(president = case_when(
+    prez_dem == 1 ~ "dem",
+    prez_gop == 1 ~ "gop"
+  )) |> 
+  select(-prez_dem, -prez_gop, -day)
+
+  
+```
+
+## snp dataset
+
+
+```{r}
+snp_df <- 
+  read_csv("fivethirtyeight_datasets/cpi.csv") |> 
+  janitor::clean_names() |> 
+  separate(date, into = c("year", "month", "day"), sep = "-") |> 
+  mutate(month = month.name[as.numeric(month)]) |> 
+  rename(snp_value = value) |> 
+  arrange(year,month)
+
+```
+
+## unemployment dataset
+
+
+```{r}
+unemp_df <- 
+  read_csv("fivethirtyeight_datasets/unemployment.csv") |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = jan:dec,
+    names_to = "month",
+    values_to = "unemployment"
+  ) |> 
+  mutate(
+    month = month.name[match(tolower(month), tolower(month.abb))]) |> 
+  mutate(year = as.character(year))
+
+```
+## Merge
+
+
+```{r}
+pols_snp_unemp <- 
+  inner_join(pols_month_df,snp_df, by = c("year","month")) |> 
+  inner_join(unemp_df, by = c("year", "month"))
+
+knitr::kable(head(pols_snp_unemp,10), caption  = "First 10 rows")
+
+```
+
+
+## Writing question for problem 1:
+
+The pols-month.csv dataset contains 822 observations and 9 variables. It tracks the counts of Republican and Democratic governors, senators, and representatives (gov_gop, sen_gop, rep_gop, gov_dem, sen_dem, rep_dem). It also shows which party the sitting president belongs to, with year and month as key time variables.
+
+The snp.csv dataset contains 822 observations and 4 variables. It represents the monthly S&P stock market index values (snp_value), along with date variables (year, month, day).
+
+The unemployment.csv dataset contains 816 observations and 3 variables, recording the U.S. monthly unemployment rate (unemployment) by year and month.
+
+After merging the three datasets, we can easily track unemployment rates and economic changes in relation to political changes.
+
+
+
+
+
+# Problem 2
+
+
+## Setting up datasets
+
+
+```{r}
+MrTrashWheel_df <- 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel" , na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  filter( dumpster != "na") |> 
+  select(-15,-16) |> 
+  mutate(sports_balls = as.integer(round(sports_balls))) |> 
+  mutate(track = "Mr.Trash Wheel") |> 
+  mutate(year = as.numeric(year))
+
+ProfTrashWheel_df <- 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  filter( dumpster != "na") |> 
+  mutate(track = "Professor Trash Wheel")
+
+
+GwynndaTrashWheel_df <- 
+  read_excel("202509 Trash Wheel Collection Data.xlsx", sheet = "Gwynns Falls Trash Wheel", na = c("NA", ".", " ")) |> 
+janitor::clean_names()|> 
+  filter( dumpster != "na") |> 
+  mutate(track = "Gwynnda Trash Wheel")
+```
+
+
+## Combines datasets
+
+
+```{r}
+AllTrashWheel_df <- 
+  bind_rows(MrTrashWheel_df,ProfTrashWheel_df,GwynndaTrashWheel_df)
+
+knitr::kable(head(AllTrashWheel_df,10), caption = "First 10 rows")
+```
+
+# Writing question for Problem 2:
+
+The total weight of the Professor Trash Wheel is `r sum(ProfTrashWheel_df$weight_tons, na.rm = TRUE)` during those days. And 
+And the total number of cigarette butts collected by Gwynnda in June of 2022 is  `r GwynndaTrashWheel_df |> 
+    dplyr::filter(year == 2022, month == "June") |> 
+    dplyr::summarise(total = sum(cigarette_butts, na.rm = TRUE)) |> 
+    dplyr::pull(total) |> 
+    format(scientific = FALSE, big.mark = ",")`.
+
+
+# Problem 3
+
+
+## Clean data
+
+```{r}
+Zip_Codes_df <- 
+  read_csv("zillow_data/Zip Codes.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  arrange(zip_code)
+
+Zillow_df <- 
+  read_csv("zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv", na = c("NA", ".", " ")) |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = x2015_01_31 : x2024_08_31,
+    names_to = "Date",
+    values_to = "rental_fee"
+  ) |> 
+  separate(Date, into = c("year", "month" , "day"), sep = "_") |> 
+  mutate(year = sub("x","",year)) |> 
+  mutate(county = str_replace(county_name, " County", "")) |> 
+  arrange(desc(rental_fee)) |> 
+  rename( zip_code = region_name) 
+```
+
+## Create single 
+
+```{r}
+Zillow_Zipcode_df <-  
+  left_join(Zip_Codes_df, Zillow_df, by = c("zip_code","county"),relationship = "many-to-many") |> 
+  select(-county_fips, -state_fips,-county_code,-file_date, -region_id, -size_rank, -region_type, -metro, -state_name)
+
+knitr::kable(head(Zillow_Zipcode_df,10), caption = "First 10 rows")
+```
+
+## Writing question for Problem 3: 
+```{r}
+distinct_all <- Zillow_Zipcode_df %>% distinct(zip_code)
+distinct_Zillow <- Zillow_df %>% distinct(zip_code)
+
+Exclude_Zillow <- setdiff(Zip_Codes_df$zip_code, Zillow_df$zip_code)
+  
+```
+
+```{r}
+price_diff <- Zillow_Zipcode_df |> 
+  select(year,month, zip_code, neighborhood, rental_fee, county_name) |> 
+  filter(year == '2020' & month == "01" | year == '2021' & month == "01") |> 
+  mutate(rental_2020 = case_when(year == '2020' ~ rental_fee), rental_2021 = case_when(year == "2021" ~ rental_fee)) |> 
+   pivot_wider(
+    id_cols   = c(zip_code, neighborhood, county_name),   
+    names_from  = year,                                  
+    values_from = rental_fee,                           
+    names_prefix = "rental_",                             
+    values_fn  = list(rental_fee = ~ first(na.omit(.))),  
+    values_fill = NA_real_                                
+  ) |> 
+    mutate(diff = rental_2020 - rental_2021) |> 
+  arrange(desc(diff))
+
+top10 <- price_diff |> 
+  slice_max(order_by = diff, n = 10) |> 
+  rename(
+    borough = county_name,
+    zip = zip_code,
+    neighborhood = neighborhood,
+    rent_2020 = rental_2020,
+    rent_2021 = rental_2021,
+    drop = diff
+  )
+
+```
+
+
+
+
+There are total **`r nrow(Zillow_Zipcode_df)` obs, `r dplyr::n_distinct(Zillow_Zipcode_df$zip_code)`** unique zip codes and **`r dplyr::n_distinct(Zillow_Zipcode_df$neighborhood)`** unique neighborhoods(with a "na"). 
+ZIP codes appear in the ZIP code dataset but not in the Zillow Rental Price dataset are: `r paste(Exclude_Zillow, collapse = " ")`.
+
+**Some Example should be consider to this results can be:**
+
+**1.** Some of the Zip-code area such as 10020 in NYC are mostly Commercial place.
+
+**2.** Some Zip-code are not for the residential area, For example 10101 - 10199 are mostly using for P.O. Boxes or other institution.
+
+**3.** Some Zip-Code area are very small.
+
+**4.** The data from Zillow is basicly rely on the house for sale or rent.
+
+**The table includes the ten zip codes with largest drop in price is:** `r knitr::kable(top10, digits = 2)`.
+
+
+
+
